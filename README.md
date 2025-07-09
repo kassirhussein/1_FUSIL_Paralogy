@@ -1,3 +1,7 @@
+# READ ME
+
+<a href="https://creativecommons.org">Untitled</a> © 1999 by <a href="https://creativecommons.org">Jane Doe</a> is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a><img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;"><img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;">
+
 # 🔬 FUSIL and Gene Paralogy Analysis
 
 This repository contains an R-based analysis of human genes categorized by their FUSIL (Functional Understanding of Susceptibility In Loss-of-function) classification and their paralogues. It explores relationships between gene essentiality, paralogue presence, sequence similarity, and evolutionary ancestry (MCRA).
