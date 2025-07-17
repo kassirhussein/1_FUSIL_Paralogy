@@ -77,26 +77,27 @@ ggplot(gene_counts, aes(x= fusil, y=percentage, fill = fusil))+
 # Filter genes with no paralogues (i.e., NA similarity values)
 na_paralogue_count <- paralogue_fusil %>%
   group_by(gene_symbol) %>%
-  filter(all(is.na(hsapiens_paralog_perc_id))) %>%
+  filter(all(is.na(hsapiens_paralog_perc_id)| hsapiens_paralog_perc_id < 30 )) %>%
   ungroup() %>%
-  distinct() %>%
+  select(1,6) %>%
+  distinct()%>%
   count(fusil) %>%
-  mutate(gene_with_no_paralogue_count =n)
+  mutate(Gene_with_no_paralogues =n)
 
 # Total count of such genes
 sum(na_paralogue_count$n)
 
 # Filter genes with at least one paralogue
-gene_with_paralogue_count <- paralogue_fusil %>%
+Genes_with_paralogue <- paralogue_fusil %>%
   group_by(gene_symbol) %>%
   filter(!all(is.na(hsapiens_paralog_perc_id))) %>%
   ungroup() %>%
   distinct() %>%
   na.omit() %>%
-  dplyr::select(1,6) %>%
+  select(1,6) %>%
   distinct()%>%
   count(fusil) %>%
-  mutate(gene_with_paralogue_count =n)
+  mutate(Genes_with_paralogue =n)
 
 # Total count of these genes
 sum(gene_with_paralogue_count$n)
@@ -104,26 +105,30 @@ sum(gene_with_paralogue_count$n)
 # Combine paralogue info with total gene counts
 Summary_gene_count <- gene_counts %>%
   left_join(na_paralogue_count, by = "fusil") %>%
-  left_join(gene_with_paralogue_count, by = "fusil") %>%
-  dplyr::select(1,4,6,8)
+  left_join(Genes_with_paralogue, by = "fusil") %>%
+  select(1,4,6,8)
 
 # Convert wide table to long format for plotting
 Summary_gene_count_long <- Summary_gene_count %>%
-  pivot_longer(cols = c(gene_with_paralogue_count, gene_with_no_paralogue_count),
-               names_to = "ParalogueStatus",
+  pivot_longer(cols = c(Genes_with_paralogue, Gene_with_no_paralogues),
+               names_to = "Paralogue Status",
                values_to = "Count")
 
-# Set FUSIL bin factor order
+Summary_gene_count_long <- Summary_gene_count_long %>%
+  group_by(fusil) %>%
+  mutate(percentage = (Count/total_gene_count)*100)
+
+
+# Plot stacked bar chart comparing genes with/without paralogues by FUSIL
+
 Summary_gene_count_long$fusil <- factor(Summary_gene_count_long$fusil, 
                                         levels = c("CL", "DL", "SV", "VP", "VnP" ))
 
-# Total gene count per FUSIL
 df_totals <- Summary_gene_count %>%
-  dplyr::select(fusil, total_gene_count) %>%
+  select(fusil, total_gene_count) %>%
   distinct()
 
-# Plot stacked bar chart comparing genes with/without paralogues by FUSIL
-ggplot(Summary_gene_count_long, aes(x= fusil, y= Count, fill = ParalogueStatus))+
+ggplot(Summary_gene_count_long, aes(x= fusil, y= Count, fill = `Paralogue Status`))+
   geom_bar(stat = "identity") +
   geom_text(data = df_totals, aes(x = fusil, y = total_gene_count, label = total_gene_count),
             vjust = -0.5, inherit.aes = FALSE) +
@@ -132,6 +137,18 @@ ggplot(Summary_gene_count_long, aes(x= fusil, y= Count, fill = ParalogueStatus))
     x = "FUSIL bin", y = "Gene Count"
   )
 
+# Create the bar plot with percentages
+
+ggplot(Summary_gene_count_long, aes(x = fusil, y = percentage, fill = `Paralogue Status`)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = Count),
+            position = position_dodge(width = 0.9),
+            vjust = -0.3, size = 3) +
+  labs(title = "Paralogues Presence per FUSIL Bin",
+       x = "Fusil",
+       y = "Percentage",
+       fill = "Paralogue Status") +
+  theme_minimal()
 
 
 ############ Paralogue counts Per FUSIL Category while accounting for protein coding genes --------
