@@ -80,7 +80,7 @@ na_paralogue_count <- paralogue_fusil %>%
   filter(all(is.na(hsapiens_paralog_perc_id)| hsapiens_paralog_perc_id < 30 )) %>%
   ungroup() %>%
   select(1,6) %>%
-  distinct()%>%
+  distinct() %>%
   count(fusil) %>%
   mutate(Gene_with_no_paralogues =n)
 
@@ -90,14 +90,15 @@ sum(na_paralogue_count$n)
 # Filter genes with at least one paralogue
 Genes_with_paralogue <- paralogue_fusil %>%
   group_by(gene_symbol) %>%
-  filter(!all(is.na(hsapiens_paralog_perc_id))) %>%
+  na.omit() %>%
+  filter(hsapiens_paralog_perc_id > 30) %>%
   ungroup() %>%
   distinct() %>%
-  na.omit() %>%
   select(1,6) %>%
   distinct()%>%
   count(fusil) %>%
   mutate(Genes_with_paralogue =n)
+
 
 # Total count of these genes
 sum(gene_with_paralogue_count$n)
@@ -141,15 +142,21 @@ ggplot(Summary_gene_count_long, aes(x= fusil, y= Count, fill = `Paralogue Status
 
 ggplot(Summary_gene_count_long, aes(x = fusil, y = percentage, fill = `Paralogue Status`)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
-  geom_text(aes(label = Count),
+  geom_text(aes(label = round(percentage, 1)),   # Round for cleaner labels
             position = position_dodge(width = 0.9),
-            vjust = -0.3, size = 3) +
-  labs(title = "Paralogues Presence per FUSIL Bin",
-       x = "Fusil",
-       y = "Percentage",
-       fill = "Paralogue Status") +
-  theme_minimal()
-
+            vjust = -0.5, size = 3) +
+  labs(
+    title = "Paralogue Presence Across FUSIL Bins",
+    x = "FUSIL Category",
+    y = "Percentage of Genes",
+    fill = "Paralogue Status"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +  # Prevent bars from touching top
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
 
 ############ Paralogue counts Per FUSIL Category while accounting for protein coding genes --------
 
@@ -412,7 +419,7 @@ fusil_table <- Fusil_genes_paralogues %>%
   mutate(percentage = n.x * 100 / n.y)
 
 # Sankey-like alluvial plot showing FUSIL transitions between genes and their paralogues
-ggplot(fusil_table, aes(axis1 = fusil, axis2 = fusil_paralogue, y = percentage)) +
+ggplot(fusil_table, aes(axis1 = fusil, axis2 = fusil_paralogue, y = percentage / 2)) +
   geom_alluvium(aes(fill = fusil), width = 0.2, show.legend = FALSE) +
   geom_stratum(width = 0.2) +
   geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
@@ -420,14 +427,21 @@ ggplot(fusil_table, aes(axis1 = fusil, axis2 = fusil_paralogue, y = percentage))
   scale_fill_manual(
     values = c("CL" = "#E41A1C", "DL" = "#377EB8", "SV" = "#4DAF4A", "VnP" = "#984EA3", "VP" = "#FF7F00")
   ) +
-  theme_minimal() +
-  theme(axis.title.y = element_blank(), axis.text.y = element_blank()) +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    plot.margin = margin(5, 5, 5, 5)
+  ) +
   ggtitle("FUSIL Category Flow: Gene → Paralog") +
   geom_text(aes(label = paste0(round(percentage, 1), "%")),
             stat = "alluvium",
-            nudge_x = 0.2,
+            nudge_x = 0.15,     # move to the left
             size = 3,
+            fontface = "bold",  # make text bold
             color = "black")
+
+
 
 #---------------------- Similarity bins and FUSIL match ----------------------#
 
